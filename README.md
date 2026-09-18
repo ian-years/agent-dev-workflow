@@ -1,5 +1,7 @@
 ﻿# Agent Dev Workflow
 
+English | [中文](README_CN.md)
+
 Multi-agent development workflows for [Codex](https://codex.openai.com/). Five composable skills with role-isolated sub-agent delegation: an orchestrator coordinates, an architect designs, a coder implements, and a reviewer reviews. No agent ever reviews its own work.
 
 ## Why
