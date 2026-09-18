@@ -1,4 +1,4 @@
-# Agent Dev Workflow
+﻿# Agent Dev Workflow
 
 Multi-agent development workflows for [Codex](https://codex.openai.com/). Five composable skills with role-isolated sub-agent delegation: an orchestrator coordinates, an architect designs, a coder implements, and a reviewer reviews. No agent ever reviews its own work.
 
@@ -58,7 +58,7 @@ Copy the contents of this repo into your Codex home:
 
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/agent-dev-workflow.git
+git clone https://github.com/ian-years/agent-dev-workflow.git
 cd agent-dev-workflow
 
 # Copy skills
@@ -71,7 +71,7 @@ cp -r agents/* ~/.codex/agents/
 ### Option B: Windows PowerShell
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/agent-dev-workflow.git
+git clone https://github.com/ian-years/agent-dev-workflow.git
 cd agent-dev-workflow
 Copy-Item -Path skills\* -Destination "$env:USERPROFILE\.codex\skills\" -Recurse -Force
 Copy-Item -Path agents\* -Destination "$env:USERPROFILE\.codex\agents\" -Recurse -Force

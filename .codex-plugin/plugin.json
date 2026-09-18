@@ -1,9 +1,9 @@
-{
+﻿{
   "name": "agent-dev-workflow",
   "version": "1.0.0",
   "description": "Multi-agent dev workflows: feature-dev (features + refactoring, 6 phases), bugfix (4 phases), design (simple/complex dual mode), quick-code (3 phases), code-review (3 phases).",
   "author": "Agent Dev Workflow Contributors",
-  "repository": "https://github.com/YOUR_USERNAME/agent-dev-workflow",
+  "repository": "https://github.com/ian-years/agent-dev-workflow",
   "license": "MIT",
   "skills": [
     "skills/feature-dev",
