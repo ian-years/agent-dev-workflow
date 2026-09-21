@@ -32,7 +32,12 @@ done
 # Install agents
 AGENTS=("architect" "coder" "debugger" "reviewer")
 for agent in "${AGENTS[@]}"; do
-    cp "$SCRIPT_DIR/agents/$agent.md" "$AGENTS_DEST/$agent.md"
+    src_file="$SCRIPT_DIR/agents/$agent.md"
+    if grep -Eq "your-(strong|efficient)-model" "$src_file"; then
+        echo "Agent '$agent' still contains a placeholder model. Replace your-strong-model or your-efficient-model before installing." >&2
+        exit 1
+    fi
+    cp "$src_file" "$AGENTS_DEST/$agent.md"
     echo "  Agent: $agent installed"
 done
 

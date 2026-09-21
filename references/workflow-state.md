@@ -83,8 +83,8 @@ This is the fix for "retry causes duplicate execution":
 
 1. **Each sub-task has a unique Task ID** (T1, T2, T3, ...) assigned by the architect during design.
 2. **Coder commits must include the Task ID** in the commit message: `[T1]: implemented user login`.
-3. **Before dispatching a coder for a task**, the orchestrator checks `git log --oneline` for commits containing the Task ID. If found, the task is already done — skip it.
-4. **Before starting work**, the coder agent checks `git log --oneline` for its Task ID. If found, report "Task [ID] already completed" and return without doing anything.
+3. **Before dispatching a coder for a task**, the orchestrator runs `git log --oneline --all --extended-regexp --grep="^\[T1\]:"`. If the command returns a commit, the task is already done — skip it.
+4. **Before starting work**, the coder agent runs the same exact-token command for its assigned Task ID. If it returns a commit, report "Task [ID] already completed" and return without doing anything.
 5. **If a task was partially done** (some files changed but no commit), the coder should detect the partial state and either continue from where it left off or report the partial state.
 
 ## Compensation Rules

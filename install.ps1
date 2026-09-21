@@ -32,6 +32,10 @@ foreach ($skill in $skills) {
 $agents = @("architect", "coder", "debugger", "reviewer")
 foreach ($agent in $agents) {
     $srcFile = Join-Path $scriptDir "agents\$agent.md"
+    $agentContent = Get-Content -Raw -Encoding UTF8 $srcFile
+    if ($agentContent -match "your-(strong|efficient)-model") {
+        throw "Agent '$agent' still contains a placeholder model. Replace your-strong-model or your-efficient-model before installing."
+    }
     Copy-Item $srcFile "$agentsDest\$agent.md" -Force
     Write-Host "  Agent: $agent installed" -ForegroundColor Green
 }

@@ -94,12 +94,12 @@ The design MUST include Task IDs (T1, T2, T3, ...) for each implementation task,
 
 For each task in the design (T1, T2, T3, ...):
 
-1. **Idempotency check**: Before dispatching, run `git log --oneline` and search for the Task ID. If a commit with `[T1]` exists, the task is already done — mark it `completed` in the state file and skip.
+1. **Idempotency check**: Before dispatching, run `git log --oneline --all --extended-regexp --grep="^\[T1\]:"`. If the command returns a commit, the task is already done — mark it `completed` in the state file and skip.
 2. **Update state file**: Set task status to `dispatched` in `docs/progress/workflow-state.md`.
 3. **Dispatch coder**: Send the coder subagent with the Task ID, task description, files, and acceptance criteria.
 4. **Coder returns**: The coder checks git log for its Task ID before starting (idempotency). It commits with `[T1]: description`.
-5. **Update state file**: Set task status to `completed`, record commit hash and files changed.
-6. **Verify**: Check that the commit exists and tests pass for this task.
+5. **Verify**: Check that the commit exists and tests pass for this task.
+6. **Update state file**: If verification passes, set task status to `completed` and record the commit hash and files changed. If verification fails, set task status to `failed` and dispatch a fix.
 
 ### Parallel vs Sequential
 
