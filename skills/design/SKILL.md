@@ -27,15 +27,23 @@ See `references/workflow-state.md` for the state file format and detailed protoc
 
 **Never block.** If subagents are unavailable, design it yourself.
 
-## Model Assignment
+## Model Resolution Protocol
 
-When dispatching the architect subagent in multi-agent mode, use this model:
+The model for every subagent comes from `agents/<role>.md` — never from
+this document. Before dispatching any subagent:
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| architect | your-strong-model | Strong reasoning for architecture decisions, trade-off analysis, risk assessment |
+1. Read `agents/<role>.md` and extract the `model:` value from its
+   frontmatter.
+2. Validate: the value must be non-empty and must not contain `your-`
+   (placeholder). If invalid, STOP: report "Agent '<role>' has no
+   concrete model (found: '<value>'). Set model: in agents/<role>.md
+   and retry." Do not dispatch. Do not substitute a default model.
+3. Dispatch with the resolved value passed explicitly:
+   spawn_agent(role=<role>, model=<resolved model>, prompt=...)
 
-Rationale: design is the phase where reasoning quality matters most. A good design prevents rework downstream. The strong model is worth the token cost here because design errors are 10x more expensive to fix in implementation.
+At Phase 0, pre-resolve and validate the models for ALL roles this
+workflow uses (architect). If any role fails validation, stop before
+Phase 1.
 
 ## Mode Selection (Simple vs Complex)
 
@@ -62,11 +70,12 @@ Phase 2  Confirm          User                       Approved / revise
 ### Phase 0 — Coordinate
 1. Ask: what problem? what context?
 2. Assess complexity. Tell the user which mode.
-3. Write `docs/progress/design-brief.md`.
-4. **Write `docs/progress/workflow-state.md`**: workflow=design, mode, phase=0, simple/complex.
+3. **Multi-agent mode only:** Pre-resolve and validate the models for all roles (architect) per the Model Resolution Protocol. If any role fails validation, stop before Phase 1.
+4. Write `docs/progress/design-brief.md`.
+5. **Write `docs/progress/workflow-state.md`**: workflow=design, mode, phase=0, simple/complex.
 
 ### Phase 1 — Quick Design
-**Multi-agent:** Dispatch `architect` subagent (model: your-strong-model) with the brief.
+**Multi-agent:** Dispatch `architect` subagent (model resolved per the Model Resolution Protocol) with the brief.
 **Solo:** Read relevant code yourself. Write the design.
 Output: `docs/progress/design.md`.
 **Update workflow-state.md**: phase=1 completed.
@@ -86,7 +95,7 @@ Phase 4  Confirm          User                       Approved / revise
 ```
 
 ### Phase 1 — Proposal
-**Multi-agent:** Dispatch `architect` subagent (model: your-strong-model). It produces 2-3 approaches with pros/cons, effort, risk, recommendation.
+**Multi-agent:** Dispatch `architect` subagent (model resolved per the Model Resolution Protocol). It produces 2-3 approaches with pros/cons, effort, risk, recommendation.
 **Solo:** Research and write 2-3 approaches yourself.
 Output: `docs/progress/proposal.md`.
 **Update workflow-state.md**: phase=1 completed.
@@ -96,7 +105,7 @@ Present proposal. Let user choose. Document the chosen direction.
 **Update workflow-state.md**: phase=2 completed, record chosen direction.
 
 ### Phase 3 — Detailed Design
-**Multi-agent:** Dispatch `architect` subagent (model: your-strong-model) with the chosen approach.
+**Multi-agent:** Dispatch `architect` subagent (model resolved per the Model Resolution Protocol) with the chosen approach.
 **Solo:** Write the full design yourself.
 Output: `docs/progress/design.md`.
 **Update workflow-state.md**: phase=3 completed.
@@ -113,8 +122,8 @@ Present to user. Revise if needed. Offer to transition to `feature-dev`.
 - **Never block because subagents are unavailable.** Always design in solo mode.
 - **Always update workflow-state.md after each phase.**
 - **On resume, preserve the original mode.**
-- **Use the model specified for each agent.**
+- **Use the model resolved per the Model Resolution Protocol for each agent.**
 
 ## Agent References
 
-See `agents/architect.md` (model: your-strong-model) for architect behavior spec.
+See `agents/architect.md` for architect behavior spec.

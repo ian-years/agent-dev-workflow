@@ -184,22 +184,59 @@ class SubagentAllocationTests(unittest.TestCase):
             with self.subTest(role=role):
                 self.assertEqual(expected, metadata.get("model"))
 
-    def test_workflow_model_tables_match_agent_files(self):
-        role_model_pairs = {
-            "feature-dev": EXPECTED_ROLES["feature-dev"],
-            "bugfix": EXPECTED_ROLES["bugfix"],
-            "design": EXPECTED_ROLES["design"],
-            "code-review": EXPECTED_ROLES["code-review"],
-        }
-        for skill, roles in role_model_pairs.items():
+    def test_skills_define_model_resolution_protocol(self):
+        for skill, roles in EXPECTED_ROLES.items():
+            if not roles:
+                continue
             text = skill_text(skill)
-            for role in roles:
-                expected = EXPECTED_MODELS[role]
-                with self.subTest(skill=skill, role=role):
-                    self.assertRegex(
-                        text,
-                        rf"\|\s*{role}\s*\|\s*{re.escape(expected)}\s*\|",
-                    )
+            with self.subTest(skill=skill):
+                self.assertIn("Model Resolution Protocol", text)
+                self.assertIn("agents/<role>.md", text)
+                self.assertIn("extract the `model:` value", text)
+                self.assertRegex(
+                    text,
+                    r"spawn_agent\(role=<role>, model=<resolved model>",
+                )
+
+    def test_skills_fail_fast_on_missing_or_placeholder_model(self):
+        for skill, roles in EXPECTED_ROLES.items():
+            if not roles:
+                continue
+            text = skill_text(skill)
+            with self.subTest(skill=skill):
+                self.assertIn("`your-`", text)
+                self.assertIn("STOP", text)
+                self.assertIn("Do not dispatch", text)
+                self.assertIn("Do not substitute a default model", text)
+
+    def test_skills_do_not_hardcode_models_at_dispatch(self):
+        for skill in SKILLS:
+            text = skill_text(skill)
+            with self.subTest(skill=skill):
+                self.assertNotRegex(
+                    text,
+                    r"Dispatch[^\n]*\(model:\s*your-",
+                )
+                self.assertNotIn("(model: your-", text)
+                self.assertNotRegex(
+                    text,
+                    r"\|\s*(architect|coder|debugger|reviewer)\s*\|\s*your-",
+                )
+
+    def test_phase0_prevalidates_all_role_models(self):
+        for skill, roles in EXPECTED_ROLES.items():
+            if not roles:
+                continue
+            text = skill_text(skill)
+            with self.subTest(skill=skill):
+                self.assertIn("Phase 0", text)
+                self.assertIn("pre-resolve and validate", text)
+                match = re.search(r"workflow uses \(([^)]*)\)", text)
+                self.assertIsNotNone(match)
+                named = {
+                    role.strip() for role in match.group(1).split(",")
+                }
+                self.assertEqual(set(roles), named)
 
     def test_role_boundaries_prevent_role_overlap(self):
         boundaries = {
@@ -309,21 +346,6 @@ class InstalledRuntimeTests(unittest.TestCase):
             with self.subTest(role=role):
                 self.assertNotIn("your-", metadata.get("model", ""))
                 self.assertTrue(metadata.get("model"))
-
-    def test_installed_workflow_models_match_agent_models(self):
-        for skill, roles in EXPECTED_ROLES.items():
-            if not roles:
-                continue
-            text = read_text(self.CODEX_HOME / "skills" / skill / "SKILL.md")
-            for role in roles:
-                agent_model = parse_frontmatter(
-                    read_text(self.CODEX_HOME / "agents" / f"{role}.md")
-                )["model"]
-                with self.subTest(skill=skill, role=role):
-                    self.assertRegex(
-                        text,
-                        rf"\|\s*{role}\s*\|\s*{re.escape(agent_model)}\s*\|",
-                    )
 
     def test_installed_partial_recovery_never_discards_user_work(self):
         for role in AGENTS:

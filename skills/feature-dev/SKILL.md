@@ -28,17 +28,23 @@ At the start of Phase 0, detect whether you can dispatch subagents:
 
 **Never block the workflow.** If subagents are unavailable, proceed in solo mode.
 
-## Model Assignment
+## Model Resolution Protocol
 
-When dispatching subagents in multi-agent mode, use these models:
+The model for every subagent comes from `agents/<role>.md` — never from
+this document. Before dispatching any subagent:
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| architect | your-strong-model | Strong reasoning for design decisions, risk assessment, architecture |
-| coder | your-efficient-model | Efficient for implementation, good coding ability, lower token cost |
-| reviewer | your-strong-model | Strong reasoning for finding subtle bugs, security issues, regressions |
+1. Read `agents/<role>.md` and extract the `model:` value from its
+   frontmatter.
+2. Validate: the value must be non-empty and must not contain `your-`
+   (placeholder). If invalid, STOP: report "Agent '<role>' has no
+   concrete model (found: '<value>'). Set model: in agents/<role>.md
+   and retry." Do not dispatch. Do not substitute a default model.
+3. Dispatch with the resolved value passed explicitly:
+   spawn_agent(role=<role>, model=<resolved model>, prompt=...)
 
-Rationale: the strong model handles design and review (where reasoning matters most), the efficient model handles execution (where coding ability is sufficient). This optimizes token cost without sacrificing quality at critical decision points.
+At Phase 0, pre-resolve and validate the models for ALL roles this
+workflow uses (architect, coder, reviewer). If any role fails
+validation, stop before Phase 1.
 
 ## Phase Flow
 
@@ -67,14 +73,15 @@ At Phase 0, also detect the work type:
 1. Ask the user to describe what they want.
 2. Rephrase and confirm scope (IN/OUT).
 3. Detect mode (feature vs refactor) and tell the user.
-4. Write a brief to `docs/progress/feature-brief.md`.
-5. **Write `docs/progress/workflow-state.md`**: workflow=feature-dev, mode=(multi-agent/solo), phase=0, work type.
+4. **Multi-agent mode only:** Pre-resolve and validate the models for all roles (architect, coder, reviewer) per the Model Resolution Protocol. If any role fails validation, stop before Phase 1.
+5. Write a brief to `docs/progress/feature-brief.md`.
+6. **Write `docs/progress/workflow-state.md`**: workflow=feature-dev, mode=(multi-agent/solo), phase=0, work type.
 
 **Exit check:** User confirms. Then proceed to Phase 1.
 
 ## Phase 1 — Design
 
-**Multi-agent:** Dispatch `architect` subagent (model: your-strong-model) with the brief and codebase context. Review its output for completeness.
+**Multi-agent:** Dispatch `architect` subagent (model resolved per the Model Resolution Protocol) with the brief and codebase context. Review its output for completeness.
 **Solo:** Read the codebase yourself. Write the design following the architect agent's structure (see `agents/architect.md`).
 
 **Output:** `docs/progress/design.md` — affected modules, data flow, API changes, risk assessment, implementation order with Task IDs.
@@ -87,7 +94,7 @@ The design MUST include Task IDs (T1, T2, T3, ...) for each implementation task,
 
 ## Phase 2 — Implement
 
-**Multi-agent:** Dispatch `coder` subagent(s) (model: your-efficient-model). You do not write code.
+**Multi-agent:** Dispatch `coder` subagent(s) (model resolved per the Model Resolution Protocol). You do not write code.
 **Solo:** Implement the code yourself, following the design. Break into bite-sized tasks. Commit after each with the Task ID.
 
 ### Sub-Task Dispatch Protocol
@@ -123,7 +130,7 @@ If resuming Phase 2 after interruption:
 1. Run the full test suite.
 2. New features: verify new tests exist and pass.
 3. Refactoring: verify all existing tests still pass.
-4. If tests fail: multi-agent → dispatch coder (model: your-efficient-model) to fix; solo → fix yourself. Coder uses the Task ID for the fix commit.
+4. If tests fail: multi-agent → dispatch coder (model resolved per the Model Resolution Protocol) to fix; solo → fix yourself. Coder uses the Task ID for the fix commit.
 
 **Update `docs/progress/workflow-state.md`**: phase=3 completed.
 
@@ -131,7 +138,7 @@ If resuming Phase 2 after interruption:
 
 ## Phase 4 — Review
 
-**Multi-agent:** Dispatch `reviewer` subagent (model: your-strong-model) with the full diff. The reviewer has fresh context — it sees only the diff, not the implementation session. You do not review yourself.
+**Multi-agent:** Dispatch `reviewer` subagent (model resolved per the Model Resolution Protocol) with the full diff. The reviewer has fresh context — it sees only the diff, not the implementation session. You do not review yourself.
 **Solo:** Review your own diff. Be honest about the limitation — self-review misses things independent review catches. Apply extra scrutiny since there's no second pair of eyes.
 
 **Output:** Review report in `docs/progress/review.md`.
@@ -161,14 +168,14 @@ If the reviewer finds issues:
 - **Always update workflow-state.md after each phase AND each sub-task.**
 - **On resume, preserve the original mode.** Do NOT silently switch from multi-agent to solo.
 - **On resume, skip completed sub-tasks.** Check git log for Task IDs. Do NOT re-dispatch done work.
-- **Use the model specified for each agent.** Do not swap models to save cost.
+- **Use the model resolved per the Model Resolution Protocol for each agent.** Do not swap models to save cost.
 - **Every coder commit must include the Task ID.** This is the idempotency key.
 
 ## Agent References
 
-- `agents/architect.md` (model: your-strong-model) — designs with Task IDs and semantic scope boundaries
-- `agents/coder.md` (model: your-efficient-model) — idempotent: checks git log before starting
-- `agents/reviewer.md` (model: your-strong-model) — reviews, independent of coder and architect
+- `agents/architect.md` — designs with Task IDs and semantic scope boundaries
+- `agents/coder.md` — idempotent: checks git log before starting
+- `agents/reviewer.md` — reviews, independent of coder and architect
 
 ## Templates
 

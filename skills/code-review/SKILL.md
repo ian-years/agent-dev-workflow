@@ -27,15 +27,23 @@ See `references/workflow-state.md` for the state file format and detailed protoc
 
 **Never block.** If subagents are unavailable, review inline yourself.
 
-## Model Assignment
+## Model Resolution Protocol
 
-When dispatching the reviewer subagent in multi-agent mode, use this model:
+The model for every subagent comes from `agents/<role>.md` — never from
+this document. Before dispatching any subagent:
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| reviewer | your-strong-model | Strong reasoning for finding subtle bugs, security issues, regressions |
+1. Read `agents/<role>.md` and extract the `model:` value from its
+   frontmatter.
+2. Validate: the value must be non-empty and must not contain `your-`
+   (placeholder). If invalid, STOP: report "Agent '<role>' has no
+   concrete model (found: '<value>'). Set model: in agents/<role>.md
+   and retry." Do not dispatch. Do not substitute a default model.
+3. Dispatch with the resolved value passed explicitly:
+   spawn_agent(role=<role>, model=<resolved model>, prompt=...)
 
-Rationale: code review requires deep reasoning to catch subtle correctness issues, security vulnerabilities, and regression risks. The strong model is worth the token cost here because a missed bug is far more expensive than the extra tokens.
+At Phase 0, pre-resolve and validate the models for ALL roles this
+workflow uses (reviewer). If any role fails validation, stop before
+Phase 1.
 
 ```
 Phase 0  Coordinate       You + User                 Target confirmed — AUTO PROCEED
@@ -47,12 +55,13 @@ Phase 2  Complete         You                        Delivered, archived — AUT
 
 1. Determine the review target: uncommitted changes, recent commits (default 3 days), or branch diff.
 2. If "review everything" on a 50-file diff, suggest narrowing.
-3. **Write `docs/progress/workflow-state.md`**: workflow=code-review, mode, phase=0, target.
-4. Confirm and proceed immediately.
+3. **Multi-agent mode only:** Pre-resolve and validate the models for all roles (reviewer) per the Model Resolution Protocol. If any role fails validation, stop before Phase 1.
+4. **Write `docs/progress/workflow-state.md`**: workflow=code-review, mode, phase=0, target.
+5. Confirm and proceed immediately.
 
 ## Phase 1 — Review
 
-**Multi-agent:** Dispatch `reviewer` subagent (model: your-strong-model) with ONLY the diff and project conventions. Do not provide implementation context — the reviewer judges code as-is.
+**Multi-agent:** Dispatch `reviewer` subagent (model resolved per the Model Resolution Protocol) with ONLY the diff and project conventions. Do not provide implementation context — the reviewer judges code as-is.
 **Solo:** Collect the diff yourself. Review in priority order: correctness, regression risk, security, performance, test coverage, style. Apply extra scrutiny since there's no second pair of eyes.
 
 **Output:** `docs/progress/review.md` — findings with file:line references and severity (Critical / Warning / Suggestion).
@@ -75,4 +84,4 @@ Phase 2  Complete         You                        Delivered, archived — AUT
 - **Never block because subagents are unavailable.** Always review inline in solo mode.
 - **Always update workflow-state.md after each phase.**
 - **On resume, preserve the original mode.**
-- **Use the model specified for each agent.**
+- **Use the model resolved per the Model Resolution Protocol for each agent.**

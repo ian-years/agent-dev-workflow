@@ -31,16 +31,23 @@ At Phase 0, detect whether you can dispatch subagents:
 
 For **trivial bugs** (typo, wrong variable name, obvious one-liner): skip delegation entirely in both modes. Fix it yourself and say "This is a trivial fix."
 
-## Model Assignment
+## Model Resolution Protocol
 
-When dispatching subagents in multi-agent mode, use these models:
+The model for every subagent comes from `agents/<role>.md` — never from
+this document. Before dispatching any subagent:
 
-| Agent | Model | Why |
-|-------|-------|-----|
-| debugger | your-efficient-model | Efficient for code tracing, good at systematic debugging, lower token cost |
-| coder | your-efficient-model | Efficient for applying fixes, good coding ability, lower token cost |
+1. Read `agents/<role>.md` and extract the `model:` value from its
+   frontmatter.
+2. Validate: the value must be non-empty and must not contain `your-`
+   (placeholder). If invalid, STOP: report "Agent '<role>' has no
+   concrete model (found: '<value>'). Set model: in agents/<role>.md
+   and retry." Do not dispatch. Do not substitute a default model.
+3. Dispatch with the resolved value passed explicitly:
+   spawn_agent(role=<role>, model=<resolved model>, prompt=...)
 
-Note: Bugfix does not use the architect or reviewer agents. Both debugger and coder use the efficient model since bug fixing is primarily execution work, not architectural reasoning. If the bug turns out to be architectural (design flaw), suggest transitioning to the `design` workflow which uses your-strong-model.
+At Phase 0, pre-resolve and validate the models for ALL roles this
+workflow uses (debugger, coder). If any role fails validation, stop
+before Phase 1.
 
 ```
 Phase 0  Confirm          You + User                 Bug report — PAUSE for user
@@ -56,14 +63,15 @@ Phase 3  Complete         You                        Commit, archive — AUTO PR
 1. Ask: what happened vs what should have happened?
 2. Collect: error messages, repro steps, environment.
 3. Try to reproduce it yourself.
-4. Write `docs/progress/bug-report.md`.
-5. **Write `docs/progress/workflow-state.md`**: workflow=bugfix, mode=(multi-agent/solo), phase=0.
+4. **Multi-agent mode only:** Pre-resolve and validate the models for all roles (debugger, coder) per the Model Resolution Protocol. If any role fails validation, stop before Phase 1.
+5. Write `docs/progress/bug-report.md`.
+6. **Write `docs/progress/workflow-state.md`**: workflow=bugfix, mode=(multi-agent/solo), phase=0.
 
 **Exit check:** User confirms. Trivial bug → fix yourself, skip to Phase 2. Non-trivial → Phase 1.
 
 ## Phase 1 — Locate & Fix
 
-**Multi-agent:** Dispatch `debugger` subagent (model: your-efficient-model) with the bug report. Debugger finds root cause, writes `docs/progress/root-cause.md`. Then dispatch `coder` subagent (model: your-efficient-model) with the root cause analysis to apply the minimal fix.
+**Multi-agent:** Dispatch `debugger` subagent (model resolved per the Model Resolution Protocol) with the bug report. Debugger finds root cause, writes `docs/progress/root-cause.md`. Then dispatch `coder` subagent (model resolved per the Model Resolution Protocol) with the root cause analysis to apply the minimal fix.
 **Solo:** Trace the code path yourself. Find the exact line where behavior diverges. Apply the minimal fix.
 
 **Iron rule:** NO fix without root cause confirmed first.
@@ -100,9 +108,9 @@ Phase 3  Complete         You                        Commit, archive — AUTO PR
 - User checkpoint at Phase 0 only.
 - **Always update workflow-state.md after each phase.**
 - **On resume, preserve the original mode.**
-- **Use the model specified for each agent.**
+- **Use the model resolved per the Model Resolution Protocol for each agent.**
 
 ## Agent References
 
-- `agents/debugger.md` (model: your-efficient-model) — finds root cause, never fixes
-- `agents/coder.md` (model: your-efficient-model) — applies fix, never debugs complex issues
+- `agents/debugger.md` — finds root cause, never fixes
+- `agents/coder.md` — applies fix, never debugs complex issues
