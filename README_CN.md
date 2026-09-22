@@ -53,7 +53,52 @@
 - **优雅降级。** 如果子 Agent 不可用（如 CLI 不支持委派），所有工作流回退到 solo 模式，端到端完成。
 - **按角色分配模型。** 每个子 Agent 的模型在委派时从 `agents/<role>.md` 的 frontmatter 解析，而不是硬编码在 skill 里。强模型负责设计和审查；高效模型负责实现。
 
+## 配置模型（安装前必做）
+
+模型分配是强制的。每个子 Agent 的模型在委派时从 `agents/<role>.md` 解析，若值为空或仍是占位符（`your-`）就会快速失败。安装前必须填好真实模型名。
+
+| 文件 | 角色 | 占位符 | 建议层级 |
+|------|------|--------|----------|
+| `agents/architect.md` | 设计 | `your-strong-model` | 最强推理模型 |
+| `agents/coder.md` | 实现 | `your-efficient-model` | 高效编码模型 |
+| `agents/debugger.md` | 调试 | `your-efficient-model` | 高效编码模型 |
+| `agents/reviewer.md` | 审查 | `your-strong-model` | 最强推理模型 |
+
+使用目标 Codex 环境中实际可用的模型名。设计和审查需要强推理，实现和调试偏执行、适合高效模型。
+
+### 给导入本仓库的 AI
+
+1. 读取 `agents/` 下每个文件，把 `model:` 替换成用户当前 Codex 环境里可用的模型名，不要照抄下面的 `gpt-4o` 示例。
+2. 如果不确定可用模型，先列出或询问用户，再给 architect/reviewer 选强模型、给 coder/debugger 选高效模型。
+3. 安装前确认没有遗漏：
+
+   ```bash
+   grep -R "your-" agents/ && echo "placeholders remain" || echo "ready"
+   ```
+
+示例配置：
+
+```yaml
+# agents/architect.md frontmatter
+---
+name: architect
+model: gpt-4o
+description: ...
+---
+```
+
+```yaml
+# agents/coder.md frontmatter
+---
+name: coder
+model: gpt-4o-mini
+description: ...
+---
+```
+
 ## 安装
+
+先完成上面的配置模型步骤。手动复制方式直接拷贝文件，不会校验占位符。
 
 ### 方式一：Windows PowerShell
 
@@ -85,39 +130,6 @@ cp -r agents/* ~/.codex/agents/
 ```
 
 安装后重启 Codex 或开新对话，Skill 会根据你的请求关键词自动触发。
-
-## 配置模型
-
-每个 agent 的 frontmatter 有 `model:` 字段。编辑文件替换为你的实际模型名。这个文件是唯一真源：每个工作流在 Phase 0 和每次委派前读取它，若值为空或仍是占位符（`your-`）就报错停止。
-
-| 文件 | 角色 | 默认占位符 | 建议模型层级 |
-|------|------|-----------|------------|
-| `agents/architect.md` | 设计 | `your-strong-model` | 最强推理模型 |
-| `agents/coder.md` | 实现 | `your-efficient-model` | 高效编码模型 |
-| `agents/debugger.md` | 调试 | `your-efficient-model` | 高效编码模型 |
-| `agents/reviewer.md` | 审查 | `your-strong-model` | 最强推理模型 |
-
-将 `your-strong-model` 和 `your-efficient-model` 替换为你的实际模型标识符。理由：设计和审查需要深度推理（值得花 Token），而实现和调试是执行密集型（高效模型足够）。
-
-示例配置：
-
-```yaml
-# agents/architect.md frontmatter
----
-name: architect
-model: gpt-4o
-description: ...
----
-```
-
-```yaml
-# agents/coder.md frontmatter
----
-name: coder
-model: gpt-4o-mini
-description: ...
----
-```
 
 ## 使用方式
 

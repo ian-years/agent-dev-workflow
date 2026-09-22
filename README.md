@@ -52,7 +52,62 @@ Project files + git commits (ground truth)
 - **Graceful degradation.** If sub-agents are unavailable (e.g. CLI without delegation support), every workflow falls back to solo mode and completes end-to-end.
 - **Model assignment per role.** Each subagent's model is resolved from `agents/<role>.md` frontmatter at dispatch time, never hardcoded in the skill. Strong models handle design and review; efficient models handle implementation.
 
+## Configure Models (Required Before Install)
+
+Model assignment is mandatory. Each sub-agent's model is resolved from
+`agents/<role>.md` at dispatch time, and a workflow fails fast if any value is
+missing or still a placeholder (`your-`). Set real model names before
+installing.
+
+| File | Role | Placeholder | Suggested Tier |
+|------|------|-------------|----------------|
+| `agents/architect.md` | Design | `your-strong-model` | Strongest reasoning model |
+| `agents/coder.md` | Implementation | `your-efficient-model` | Efficient coding model |
+| `agents/debugger.md` | Debugging | `your-efficient-model` | Efficient coding model |
+| `agents/reviewer.md` | Review | `your-strong-model` | Strongest reasoning model |
+
+Use model identifiers that are actually available in the target Codex
+environment. Design and review need strong reasoning; implementation and
+debugging are execution-heavy and suit an efficient model.
+
+### For AI assistants importing this repo
+
+1. Read every file in `agents/` and replace each `model:` value with a model
+   identifier available in the user's current Codex environment. Do not copy
+   the `gpt-4o` examples below as-is.
+2. If the available models are unknown, list them first or ask the user, then
+   assign a strong model to architect/reviewer and an efficient model to
+   coder/debugger.
+3. Verify nothing is left before installing:
+
+   ```bash
+   grep -R "your-" agents/ && echo "placeholders remain" || echo "ready"
+   ```
+
+Example configuration:
+
+```yaml
+# agents/architect.md frontmatter
+---
+name: architect
+model: gpt-4o
+description: ...
+---
+```
+
+```yaml
+# agents/coder.md frontmatter
+---
+name: coder
+model: gpt-4o-mini
+description: ...
+---
+```
+
 ## Install
+
+Complete the Configure Models step above first. The manual copy options below
+copy files directly and do not validate placeholders.
 
 ### Option A: Manual copy
 
@@ -80,39 +135,6 @@ Copy-Item -Path agents\* -Destination "$env:USERPROFILE\.codex\agents\" -Recurse
 ```
 
 After install, restart Codex or start a new conversation. The skills auto-trigger based on your request keywords.
-
-## Configure Models
-
-Each agent has a `model:` field in its frontmatter. Edit the files to match your available models. This file is the single source of truth: every workflow reads it at Phase 0 and before each dispatch, and stops with a clear error if a value is missing or still a placeholder (`your-`).
-
-| File | Role | Default Placeholder | Suggested Model Tier |
-|------|------|---------------------|----------------------|
-| `agents/architect.md` | Design | `your-strong-model` | Strongest reasoning model |
-| `agents/coder.md` | Implementation | `your-efficient-model` | Efficient coding model |
-| `agents/debugger.md` | Debugging | `your-efficient-model` | Efficient coding model |
-| `agents/reviewer.md` | Review | `your-strong-model` | Strongest reasoning model |
-
-Replace `your-strong-model` and `your-efficient-model` with your actual model identifiers. The rationale: design and review need deep reasoning (worth the token cost), while implementation and debugging are execution-heavy (efficient models suffice).
-
-Example configuration:
-
-```yaml
-# agents/architect.md frontmatter
----
-name: architect
-model: gpt-4o
-description: ...
----
-```
-
-```yaml
-# agents/coder.md frontmatter
----
-name: coder
-model: gpt-4o-mini
-description: ...
----
-```
 
 ## Usage
 
