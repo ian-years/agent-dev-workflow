@@ -50,7 +50,7 @@ Project files + git commits (ground truth)
 - **Git log as idempotency key.** Each coder commit includes a Task ID (`[T1]: description`). On resume after interruption, the orchestrator checks `git log` to skip already-completed tasks.
 - **State file for resume.** `docs/progress/workflow-state.md` tracks phase + sub-task level status. Survives model stream interruptions and context compaction.
 - **Graceful degradation.** If sub-agents are unavailable (e.g. CLI without delegation support), every workflow falls back to solo mode and completes end-to-end.
-- **Model assignment per role.** Strong models handle design and review (reasoning-heavy); efficient models handle implementation (execution-heavy). Configurable per agent.
+- **Model assignment per role.** Each subagent's model is resolved from `agents/<role>.md` frontmatter at dispatch time, never hardcoded in the skill. Strong models handle design and review; efficient models handle implementation.
 
 ## Install
 
@@ -83,7 +83,7 @@ After install, restart Codex or start a new conversation. The skills auto-trigge
 
 ## Configure Models
 
-Each agent has a `model:` field in its frontmatter. Edit the files to match your available models:
+Each agent has a `model:` field in its frontmatter. Edit the files to match your available models. This file is the single source of truth: every workflow reads it at Phase 0 and before each dispatch, and stops with a clear error if a value is missing or still a placeholder (`your-`).
 
 | File | Role | Default Placeholder | Suggested Model Tier |
 |------|------|---------------------|----------------------|
@@ -218,7 +218,7 @@ agent-dev-workflow/
 ## Limitations
 
 - Sub-agent delegation requires Codex desktop or CLI with delegation support. In environments without it, workflows degrade to solo mode (weaker: self-review instead of independent review).
-- The `model:` field in agent frontmatter is a suggestion to the orchestrator. Actual model enforcement depends on Codex's delegation implementation.
+- The `model:` field in agent frontmatter is the source of truth for dispatch. Every workflow resolves it at Phase 0 and before each dispatch, and fails fast if it is missing or still a placeholder. Actual model availability still depends on Codex's delegation implementation.
 - State persistence uses a Markdown file, not a database. Suitable for single-developer workflows, not concurrent multi-agent systems.
 
 ## Contributing
